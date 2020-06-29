@@ -21,10 +21,13 @@ var tableColumns = [
 
 var display = [];
 
+// Define map
 var map = new AMap.Map('container', {
     resizeEnable: true, //是否监控地图容器尺寸变化
     zoom:16, //初始化地图层级
     center: [116.4817881, 39.874614] });
+
+// Information of markers
 var coordinates = [[116.479052,39.879193], [116.479,39.878798], [116.480147, 39.878666], [116.480438,39.878741],
     [116.481396,39.879144], [116.481385,39.878749], [116.482108,39.879071], [116.482893,39.87864],
     [116.479001,39.877897], [116.48254,39.878314], [116.482868,39.878179], [116.482834,39.877431],
@@ -41,19 +44,20 @@ var titles = [
     "生命楼", "环能楼", "美食园", "奥运餐厅", "软件楼", "经管楼", "科学楼", "城建楼",
     "实训楼", "人文楼", "奥林匹克体育馆"
 ];
+var special = ["校医院", "游泳馆", "南田径场", "奥林匹克体育馆"];
+var markers = [];
+
+// Style of markers
 var normalIcon = new AMap.Icon({
     size: new AMap.Size(25, 34),
     image: "http://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
 });
-
 var selectedIcon = new AMap.Icon({
     size: new AMap.Size(25, 34),
     image: "http://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png",
 });
 
-var special = ["校医院", "游泳馆", "南田径场", "奥林匹克体育馆"];
-var markers = [];
-
+// Dynamic window size
 window.onload=function()
 {
     var h=document.documentElement.clientHeight;
@@ -61,6 +65,7 @@ window.onload=function()
     ss.style.height=h+"px";
 };
 
+// Date and time pickers
 date = new Date();
 date.setTime(date.getTime());
 $(function () {
@@ -84,6 +89,7 @@ Date.prototype.clone = function(){
     return new Date(this.valueOf());
 };
 
+// Style of chart
 function rowStyle(row, index) {
     var style = {};
     style={css:{
@@ -92,10 +98,10 @@ function rowStyle(row, index) {
     return style;
 }
 
+// Coordinates settings
 for (var i = 0; i < coordinates.length; i += 1) {
     lastTime.push(30);
 }
-
 for (var i = 0; i < coordinates.length; i += 1) {
     var marker;
     marker = new AMap.Marker({
