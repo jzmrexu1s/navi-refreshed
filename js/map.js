@@ -10,8 +10,8 @@ var routes = [];
 var renders = [];
 var seq = [];
 var selected_route = 0;
+var prevPick;
 
-var lastTime = [];
 
 var tableColumns = [
     {field: 'id', title: '地点名称'},
@@ -19,6 +19,8 @@ var tableColumns = [
 ];
 
 var display = [];
+
+var displayStatus = false;
 
 // Define map
 var map = new AMap.Map('container', {
@@ -85,9 +87,6 @@ function rowStyle(row, index) {
 
 // Coordinates settings
 for (var i = 0; i < coordinates.length; i += 1) {
-    lastTime.push(30);
-}
-for (var i = 0; i < coordinates.length; i += 1) {
     var marker;
     marker = new AMap.Marker({
         position: coordinates[i],
@@ -130,7 +129,9 @@ function poiPickerReady(poiPicker) {
     poiPicker.on('poiPicked', function(poiResult) {
 
         var marker = new AMap.Marker();
-
+        if (prevPick) {
+            map.remove(prevPick);
+        }
         var infoWindow = new AMap.InfoWindow({
             offset: new AMap.Pixel(0, -20)
         });
@@ -150,6 +151,7 @@ function poiPickerReady(poiPicker) {
         infoWindow.setContent(content);
         marker.on('click', handleClickPos);
         // infoWindow.open(map, marker.getPosition());
+        prevPick = marker;
     });
 }
 
@@ -189,6 +191,7 @@ function search() {
             crossDomain: true,
             traditional: true,
             success: function (data) {
+                displayStatus = true;
                 seq = JSON.parse(data['seq']);
                 renders = new Array(seq.length - 1);
                 for (var i = 0; i < seq.length - 1; i ++) {
@@ -321,29 +324,13 @@ $(function () {
         $('#tableL01').bootstrapTable('destroy');
         map.remove(markers);
         markers = [];
-        for (var i = 0; i < coordinates.length; i += 1) {
-            var marker;
-            marker = new AMap.Marker({
-                position: coordinates[i],
-                title: i,
-                icon: normalIcon,
-                map: map,
-            });
-            content = [];
-            content.push("电话：6739 3456");
-            if (special.indexOf(titles[i]) !== -1) {
-                content.push("<a href='http://www.bjut.edu.cn/'>点击此处访问网址</a>");
-            }
-            marker.content = content;
-            infoWindow = new AMap.InfoWindow({
-                isCustom: true,
-                content: null,
-                offset: new AMap.Pixel(16, -45)
-            });
-            marker.on('mouseover', infoOpen);
-            marker.on('click', handleClickPos);
-            markers.push(marker);
-        }
+        displayStatus = false;
+    });
+});
+
+$(function () {
+    $('#cleardisplaybutton').click(function (event) {
+        cleardisplay();
     });
 });
 
@@ -393,6 +380,22 @@ $(function () {
     });
 });
 
+function cleardisplay() {
+    for (var i = 0; i < seq.length - 1; i ++) {
+        renders[i].clear();
+    }
+    renders = [];
+    routes = [];
+    seq = [];
+    selected_route = 0;
+    time_text = [];
+    routes_text = [];
+    names_text = [];
+    displayStatus = false;
+    for (var i = 0; i < markers.length; i ++) {
+        markers[i].setLabel(null);
+    }
+}
 
 function createInfoWindow(title, content) {
     var info = document.createElement("div");
@@ -436,6 +439,10 @@ function createInfoWindow(title, content) {
 function handleClickPos(e){
     console.log(e);
     infoClose();
+    if (displayStatus === true) {
+        cleardisplay();
+    }
+    prevPick = null;
     var t = e.target.getTitle();
     var flg = 0;
     for (var j = 0; j < display.length; j ++) {
