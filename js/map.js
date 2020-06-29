@@ -496,7 +496,12 @@ function handleClickPos(e){
                     $element.blur(function() {
                         let index = $element.parent().data('index');
                         let tdValue = parseInt($element.html());
-                        saveData(index, field, tdValue);
+                        if (!isNaN(tdValue) && tdValue > 0) {
+                            saveData(index, field, tdValue);
+                        }
+                        else {
+                            saveData(index, field, 30);
+                        }
                     })
                 }
             }
