@@ -10,12 +10,11 @@ var routes = [];
 var renders = [];
 var seq = [];
 var selected_route = 0;
-var infoWindow = null;
 
 var lastTime = [];
 
 var tableColumns = [
-    {field: 'name', title: '地点名称'},
+    {field: 'id', title: '地点名称'},
     {field: 'time', title: '持续时间（分钟）'},
 ];
 
@@ -28,23 +27,9 @@ var map = new AMap.Map('container', {
     center: [116.4817881, 39.874614] });
 
 // Information of markers
-var coordinates = [[116.479052,39.879193], [116.479,39.878798], [116.480147, 39.878666], [116.480438,39.878741],
-    [116.481396,39.879144], [116.481385,39.878749], [116.482108,39.879071], [116.482893,39.87864],
-    [116.479001,39.877897], [116.48254,39.878314], [116.482868,39.878179], [116.482834,39.877431],
-    [116.478197,39.8774], [116.478847,39.876839], [116.480636,39.876831], [116.481644,39.876783],
-    [116.484162,39.876356], [116.481247,39.875476], [116.482858,39.875662], [116.484244,39.875509],
-    [116.48633,39.875504], [116.478165,39.875181], [116.479744,39.875077], [116.483666,39.874172],
-    [116.486228,39.874934], [116.486149,39.87441], [116.480367,39.873818], [116.481916,39.873816],
-    [116.486781,39.873617], [116.478246,39.873424], [116.479657,39.872994], [116.486186,39.873208],
-    [116.485965,39.872764], [116.481501,39.872114], [116.48388,39.872445]];
-var titles = [
-    "宿舍1号楼", "宿舍2号楼", "新食堂", "学综楼", "宿舍3号楼", "宿舍4号楼", "校医院", "金工楼",
-    "实验楼", "宿舍10号楼", "宿舍11号楼", "北田径场", "第二教学楼", "材料楼", "数理楼", "游泳馆",
-    "能源楼", "第三教学楼", "网球场", "第四教学楼", "理科楼", "信息楼", "图书馆", "南田径场",
-    "生命楼", "环能楼", "美食园", "奥运餐厅", "软件楼", "经管楼", "科学楼", "城建楼",
-    "实训楼", "人文楼", "奥林匹克体育馆"
-];
-var special = ["校医院", "游泳馆", "南田径场", "奥林匹克体育馆"];
+var coordinates = [];
+var titles = [];
+var special = [];
 var markers = [];
 
 // Style of markers
@@ -124,10 +109,49 @@ for (var i = 0; i < coordinates.length; i += 1) {
         offset: new AMap.Pixel(16, -45)
     });
     marker.on('mouseover', infoOpen);
-    marker.on('click', showInfoM);
+    marker.on('click', handleClickPos);
     markers.push(marker);
 }
 
+AMapUI.loadUI(['misc/PoiPicker'], function(PoiPicker) {
+
+    var poiPicker = new PoiPicker({
+        //city:'北京',
+        input: 'pickerInput'
+    });
+
+    //初始化poiPicker
+    poiPickerReady(poiPicker);
+});
+
+function poiPickerReady(poiPicker) {
+    window.poiPicker = poiPicker;
+    //选取了某个POI
+    poiPicker.on('poiPicked', function(poiResult) {
+
+        var marker = new AMap.Marker();
+
+        var infoWindow = new AMap.InfoWindow({
+            offset: new AMap.Pixel(0, -20)
+        });
+
+        var poi = poiResult.item;
+
+        marker.setPosition(poi.location);
+        marker.setTitle(poi.name)
+        infoWindow.setPosition(poi.location);
+
+        marker.setMap(map);
+        infoWindow.setMap(map);
+
+        map.setCenter(poi.location);
+
+        var content = poi.name + '<br>' + poi.address + '<br>' + '点击坐标点以添加';
+        infoWindow.setContent(content);
+        marker.on('click', handleClickPos);
+        // infoWindow.open(map, marker.getPosition());
+    });
+}
 
 function search() {
     if($("#datetimepicker1").find("input").val() === '') {
@@ -146,7 +170,7 @@ function search() {
     for (var i = 0; i < display.length; i ++) {
         for (var j = 0; j < display.length; j ++) {
             (function (i, j) {
-                walking.search(coordinates[display[i]['id']], coordinates[display[j]['id']], function (status, result) {
+                walking.search(display[i]['loc'], display[j]['loc'], function (status, result) {
                     routes[i * display.length + j] = result;
                     // console.log(result);
                     timeSeq[i * display.length + j] = result['routes']['0']['time'];
@@ -191,56 +215,31 @@ function search() {
                 t.setTime(t_s + timeSeq[(seq[seq.length - 2] - 1) * display.length + (seq[seq.length - 1] - 1)] * 1000);
                 times[1] = t.clone();
 
-                console.log(times);
-
                 for (var i = 0; i < times.length; i += 1) {
                     times[i] = times[i].toLocaleTimeString();
-                }
-
-                // 如果当前时间不处于吃饭时间 (7-9, 11-13, 17-19)
-                var eat_locations = ["新食堂", "学综楼", "金工楼", "宿舍10号楼", "宿舍11号楼", "材料楼", "数理楼", "第三教学楼",
-                    "第四教学楼", "理科楼", "信息楼", "图书馆",
-                    "生命楼", "环能楼", "美食园", "奥运餐厅",
-                    "软件楼", "经管楼", "科学楼", "城建楼",
-                    "实训楼", "人文楼", "奥林匹克体育馆"];
-                var cannot_go = [];
-                for (var i = 0; i < display.length; i += 1) {
-                    if (eat_locations.indexOf(display[seq[i] - 1]['name']) !== -1) {
-                        var t = parseInt(times[i * 2][0]);
-                        var apm = times[i * 2].slice(8, 9);
-                        if ((apm === "A" && (t < 8)) || (apm === 'P') && (t > 8)) {
-                            cannot_go.push({name:display[seq[i] - 1]['name']});
-                        }
-                    }
-                }
-
-                if (cannot_go.length > 0) {
-                    $('#cannotArrange').modal('show');
-
-                    var tableColumns2 = [
-                        {field: 'name', title: '地点名称'},
-                    ];
-
-                    $('#tableL02').bootstrapTable('destroy');
-                    $('#tableL02').bootstrapTable({
-                        theadClasses: "thead-light",
-                        columns: tableColumns2,
-                        data: cannot_go,
-                    });
-
                 }
 
                 for (var i = 0; i < display.length; i += 1) {
                     if (i === 0) {
                         time_text.push("出发：" + times[i * 2] + " 结束：" + times[i * 2 + 1]);
-                        markers[display[seq[i] - 1]['id']].setLabel({
-                            content: "<div class='labelContent'>" + "出发：" + times[i * 2] + " 结束：" + times[i * 2 + 1] + "</div>",
-                            offset: new AMap.Pixel(-50,-28)})
+                        for (var j = 0; j < markers.length; j += 1) {
+                            if (markers[j].getTitle() === display[seq[i] - 1]['id']) {
+                                markers[j].setLabel({
+                                        content: "<div class='labelContent'>" + "出发：" + times[i * 2] + " 结束：" + times[i * 2 + 1] + "</div>",
+                                        offset: new AMap.Pixel(-50,-28)}
+                                )
+                            }
+                        }
                     } else {
                         time_text.push("停留：" + times[i * 2] + " ~ " + times[i * 2 + 1]);
-                        markers[display[seq[i] - 1]['id']].setLabel({
-                            content: "<div class='labelContent'>" + "停留：" + times[i * 2] + " ~ " + times[i * 2 + 1] + "</div>",
-                            offset: new AMap.Pixel(-50,-28)})
+                        for (var j = 0; j < markers.length; j += 1) {
+                            if (markers[j].getTitle() === display[seq[i] - 1]['id']) {
+                                markers[j].setLabel({
+                                    content: "<div class='labelContent'>" + "停留：" + times[i * 2] + " ~ " + times[i * 2 + 1] + "</div>",
+                                    offset: new AMap.Pixel(-50,-28)}
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -262,6 +261,13 @@ $(function () {
 });
 
 $(function () {
+    $('#addbutton').click(function (event) {
+        console.log('test');
+    });
+});
+
+
+$(function () {
     $('#sendbutton').click(function (event) {
         routes_text = [];
         names_text = [];
@@ -276,7 +282,7 @@ $(function () {
             routes_text.push(temp);
         }
         for (var i = 0; i < seq.length; i++) {
-            names_text.push(display[seq[i] - 1]["name"]);
+            names_text.push(display[seq[i] - 1]["id"]);
         }
         var email = $("#inputemail").val();
         // console.log(email);
@@ -335,7 +341,7 @@ $(function () {
                 offset: new AMap.Pixel(16, -45)
             });
             marker.on('mouseover', infoOpen);
-            marker.on('click', showInfoM);
+            marker.on('click', handleClickPos);
             markers.push(marker);
         }
     });
@@ -427,15 +433,21 @@ function createInfoWindow(title, content) {
     return info;
 }
 
-function showInfoM(e){
-    // console.log(e);
+function handleClickPos(e){
+    console.log(e);
+    infoClose();
     var t = e.target.getTitle();
     var flg = 0;
     for (var j = 0; j < display.length; j ++) {
         if (display[j]['id'] === t) {
             display.splice(j, 1);
             flg = 1;
-            markers[t].setIcon(normalIcon);
+            for (var k = 0; k < markers.length; k ++) {
+                if (markers[k].getTitle() === t) {
+                    map.remove(markers[k]);
+                    markers.splice(k, 1);
+                }
+            }
             $('#tableL01').bootstrapTable('destroy');
             $('#tableL01').bootstrapTable({
                 theadClasses: "thead-light",
@@ -461,8 +473,9 @@ function showInfoM(e){
     }
 
     if (flg === 0 && display.length < 10) {
-        markers[t].setIcon(selectedIcon);
-        display.push({id: t, name:titles[t], time:lastTime[t]});
+        markers.push(e.target);
+        e.target.setIcon(selectedIcon);
+        display.push({id: e.target.getTitle(), time: 30, loc: e.target.getPosition()});
         $('#tableL01').bootstrapTable('destroy');
         $('#tableL01').bootstrapTable({
             theadClasses: "thead-light",
@@ -494,10 +507,6 @@ function saveData(index, field, value) {
 
 function infoClose() {
     map.clearInfoWindow();
-}
-function infoOpen(e) {
-    infoWindow.setContent(createInfoWindow(titles[e.target.getTitle()], e.target.content.join("<br/>")));
-    infoWindow.open(map, e.target.getPosition());
 }
 
 map.setFitView();

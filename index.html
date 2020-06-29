@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="description" content="">
+<!--    <base href="//webapi.amap.com/ui/1.1/ui/misc/PoiPicker/examples/" />-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -37,29 +38,6 @@
                     <h4 class="modal-title" id="myModalLabel">
                         订票
                     </h4>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>请输入相关预约信息，将自动发送到对应网站。</label>
-                    </div>
-                    <div class="form-group">
-                        <label>开始日期和时间</label>
-                           <div class="input-group date" id="datetimepicker2" data-target-input="nearest">
-                               <input type="text" class="form-control datetimepicker-input" data-target="#datetimepicker2"/>
-                               <div class="input-group-append" data-target="#datetimepicker2" data-toggle="datetimepicker">
-                                   <div class="input-group-text"><i class="fa fa-clock-o"></i></div>
-                               </div>
-                           </div>
-                    </div>
-                    <div class="form-group">
-                        <label>结束日期和时间</label>
-                        <div class="input-group date" id="datetimepicker3" data-target-input="nearest">
-                            <input type="text" class="form-control datetimepicker-input" data-target="#datetimepicker3"/>
-                            <div class="input-group-append" data-target="#datetimepicker3" data-toggle="datetimepicker">
-                                <div class="input-group-text"><i class="fa fa-clock-o"></i></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -124,6 +102,10 @@
         <!-- Hero Thumbnail -->
         <div class="hero-thumbnail aboutUs equalize bg-img" id="abc">
             <div id="container">
+                <div id="pickerBox">
+                    <input id="pickerInput" placeholder="输入关键字选取地点" />
+                    <div id="poiInfo"></div>
+                </div>
             </div>
         </div>
         
@@ -133,8 +115,8 @@
                 <div class="row h-50 justify-content-center">
                     <div class="col-12 col-md-10">
                         <div class="line"></div>
-                        <h2>BJUTNavi</h2>
-                        <p>点击蓝色标签以选择位置，再次点击以取消。在下方输入开始时间和在每个位置停留的时间。</p>
+                        <h2>Navigator</h2>
+                        <p>搜索以选择位置。在下方输入开始时间和在每个位置停留的时间。</p>
                         <div class="row">
                             <div class="col-sm-4">
                                 <div class="form-group">
