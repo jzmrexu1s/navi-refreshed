@@ -1,7 +1,62 @@
 var ss;
+var times = [];
+
+// Texts to send
+var time_text = [];
+var routes_text = [];
+var names_text = [];
+
+var routes = [];
+var renders = [];
+var seq = [];
+var selected_route = 0;
+var infoWindow = null;
+
+var lastTime = [];
+
+var tableColumns = [
+    {field: 'name', title: '地点名称'},
+    {field: 'time', title: '持续时间（分钟）'},
+];
+
+var display = [];
+
+var map = new AMap.Map('container', {
+    resizeEnable: true, //是否监控地图容器尺寸变化
+    zoom:16, //初始化地图层级
+    center: [116.4817881, 39.874614] });
+var coordinates = [[116.479052,39.879193], [116.479,39.878798], [116.480147, 39.878666], [116.480438,39.878741],
+    [116.481396,39.879144], [116.481385,39.878749], [116.482108,39.879071], [116.482893,39.87864],
+    [116.479001,39.877897], [116.48254,39.878314], [116.482868,39.878179], [116.482834,39.877431],
+    [116.478197,39.8774], [116.478847,39.876839], [116.480636,39.876831], [116.481644,39.876783],
+    [116.484162,39.876356], [116.481247,39.875476], [116.482858,39.875662], [116.484244,39.875509],
+    [116.48633,39.875504], [116.478165,39.875181], [116.479744,39.875077], [116.483666,39.874172],
+    [116.486228,39.874934], [116.486149,39.87441], [116.480367,39.873818], [116.481916,39.873816],
+    [116.486781,39.873617], [116.478246,39.873424], [116.479657,39.872994], [116.486186,39.873208],
+    [116.485965,39.872764], [116.481501,39.872114], [116.48388,39.872445]];
+var titles = [
+    "宿舍1号楼", "宿舍2号楼", "新食堂", "学综楼", "宿舍3号楼", "宿舍4号楼", "校医院", "金工楼",
+    "实验楼", "宿舍10号楼", "宿舍11号楼", "北田径场", "第二教学楼", "材料楼", "数理楼", "游泳馆",
+    "能源楼", "第三教学楼", "网球场", "第四教学楼", "理科楼", "信息楼", "图书馆", "南田径场",
+    "生命楼", "环能楼", "美食园", "奥运餐厅", "软件楼", "经管楼", "科学楼", "城建楼",
+    "实训楼", "人文楼", "奥林匹克体育馆"
+];
+var normalIcon = new AMap.Icon({
+    size: new AMap.Size(25, 34),
+    image: "http://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+});
+
+var selectedIcon = new AMap.Icon({
+    size: new AMap.Size(25, 34),
+    image: "http://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png",
+});
+
+var special = ["校医院", "游泳馆", "南田径场", "奥林匹克体育馆"];
+var markers = [];
+
 window.onload=function()
 {
-    var h=document.documentElement.clientHeight;//可见区域高度
+    var h=document.documentElement.clientHeight;
     ss=document.getElementById('abc');
     ss.style.height=h+"px";
 };
@@ -16,22 +71,57 @@ $(function () {
 });
 $(function () {
     $('#datetimepicker2').datetimepicker({
-        // format: 'HH:mm',
         initialDate: date,
     });
 });
 $(function () {
     $('#datetimepicker3').datetimepicker({
-        // format: 'HH:mm',
         initialDate: date,
     });
 });
 
-var times = [];
-
 Date.prototype.clone = function(){
     return new Date(this.valueOf());
 };
+
+function rowStyle(row, index) {
+    var style = {};
+    style={css:{
+            'color':'#ffffff'
+        }};
+    return style;
+}
+
+for (var i = 0; i < coordinates.length; i += 1) {
+    lastTime.push(30);
+}
+
+for (var i = 0; i < coordinates.length; i += 1) {
+    var marker;
+    marker = new AMap.Marker({
+        position: coordinates[i],
+        title: i,
+        icon: normalIcon,
+        map: map,
+    });
+    content = [];
+    content.push("简介：" + titles[i]);
+    content.push("电话：6739 3456");
+    if (special.indexOf(titles[i]) !== -1) {
+        content.push("<a href='http://www.bjut.edu.cn/' class='custom-link'>点击此处访问网址</a>");
+        content.push("<button type='button' class='btn btn-success' data-toggle='modal' data-target='#myModal'>立即订票</button>");
+    }
+    marker.content = content;
+    infoWindow = new AMap.InfoWindow({
+        isCustom: true,
+        content: null,
+        offset: new AMap.Pixel(16, -45)
+    });
+    marker.on('mouseover', infoOpen);
+    marker.on('click', showInfoM);
+    markers.push(marker);
+}
+
 
 function search() {
     if($("#datetimepicker1").find("input").val() === '') {
@@ -165,14 +255,10 @@ $(function () {
     });
 });
 
-var time_text = [];
-var routes_text = [];
-var names_text = [];
 $(function () {
     $('#sendbutton').click(function (event) {
         routes_text = [];
         names_text = [];
-        // console.log(routes);
         for (var i = 0; i < seq.length - 1; i++) {
             var r = routes[(seq[i] - 1) * display.length + (seq[i + 1] - 1)]["routes"]["0"]["steps"];
             var temp = [];
@@ -205,12 +291,6 @@ $(function () {
         });
     })
 });
-
-var routes = [];
-var renders = [];
-var seq = [];
-var selected_route = 0;
-var infoWindow = null;
 
 $(function () {
     $('#clearbutton').click(function (event) {
@@ -301,65 +381,6 @@ $(function () {
     });
 });
 
-var tableColumns = [
-    {field: 'name', title: '地点名称'},
-    {field: 'time', title: '持续时间（分钟）'},
-];
-
-var display = [];
-
-function rowStyle(row, index) {
-    var style = {};
-    style={css:{
-        'color':'#ffffff'
-    }};
-    return style;
-}
-
-var map = new AMap.Map('container', {
-    resizeEnable: true, //是否监控地图容器尺寸变化
-    zoom:16, //初始化地图层级
-    center: [116.4817881, 39.874614] //初始化地图中心点
-});
-var markers = [];
-var coordinates = [
-    [116.479052,39.879193], [116.479,39.878798], [116.480147, 39.878666], [116.480438,39.878741],
-    [116.481396,39.879144], [116.481385,39.878749], [116.482108,39.879071], [116.482893,39.87864],
-    [116.479001,39.877897], [116.48254,39.878314], [116.482868,39.878179], [116.482834,39.877431],
-    [116.478197,39.8774], [116.478847,39.876839], [116.480636,39.876831], [116.481644,39.876783],
-    [116.484162,39.876356], [116.481247,39.875476], [116.482858,39.875662], [116.484244,39.875509],
-    [116.48633,39.875504], [116.478165,39.875181], [116.479744,39.875077], [116.483666,39.874172],
-    [116.486228,39.874934], [116.486149,39.87441], [116.480367,39.873818], [116.481916,39.873816],
-    [116.486781,39.873617], [116.478246,39.873424], [116.479657,39.872994], [116.486186,39.873208],
-    [116.485965,39.872764], [116.481501,39.872114], [116.48388,39.872445],
-];
-var titles = [
-    "宿舍1号楼", "宿舍2号楼", "新食堂", "学综楼",
-    "宿舍3号楼", "宿舍4号楼", "校医院", "金工楼",
-    "实验楼", "宿舍10号楼", "宿舍11号楼", "北田径场",
-    "第二教学楼", "材料楼", "数理楼", "游泳馆",
-    "能源楼", "第三教学楼", "网球场", "第四教学楼",
-    "理科楼", "信息楼", "图书馆", "南田径场",
-    "生命楼", "环能楼", "美食园", "奥运餐厅",
-    "软件楼", "经管楼", "科学楼", "城建楼",
-    "实训楼", "人文楼", "奥林匹克体育馆"
-];
-
-var lastTime = [];
-for (var i = 0; i < coordinates.length; i += 1) {
-    lastTime.push(30);
-}
-
-var normalIcon = new AMap.Icon({
-    size: new AMap.Size(25, 34),
-    image: "http://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
-});
-
-var selectedIcon = new AMap.Icon({
-    size: new AMap.Size(25, 34),
-    image: "http://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png",
-});
-
 
 function createInfoWindow(title, content) {
     var info = document.createElement("div");
@@ -398,33 +419,6 @@ function createInfoWindow(title, content) {
     bottom.appendChild(sharp);
     info.appendChild(bottom);
     return info;
-}
-var special = ["校医院", "游泳馆", "南田径场", "奥林匹克体育馆"];
-
-for (var i = 0; i < coordinates.length; i += 1) {
-    var marker;
-    marker = new AMap.Marker({
-        position: coordinates[i],
-        title: i,
-        icon: normalIcon,
-        map: map,
-    });
-    content = [];
-    content.push("简介：" + titles[i]);
-    content.push("电话：6739 3456");
-    if (special.indexOf(titles[i]) !== -1) {
-        content.push("<a href='http://www.bjut.edu.cn/' class='custom-link'>点击此处访问网址</a>");
-        content.push("<button type='button' class='btn btn-success' data-toggle='modal' data-target='#myModal'>立即订票</button>");
-    }
-    marker.content = content;
-    infoWindow = new AMap.InfoWindow({
-        isCustom: true,
-        content: null,
-        offset: new AMap.Pixel(16, -45)
-    });
-    marker.on('mouseover', infoOpen);
-    marker.on('click', showInfoM);
-    markers.push(marker);
 }
 
 function showInfoM(e){
